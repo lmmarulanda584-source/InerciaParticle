@@ -89,7 +89,7 @@ print(f"Mass flow rate at inlet = {m_dot_inlet:.3f} kg/s")
 core = [5,10,1,5,8,10]
 scavenge = [6,4,7,10,1,5,7]
 ce = efficiencyCalculations.captureEfficiency(core, scavenge)
-print(f"Collection Efficency = {ce:.3f}")
+print(f"Capture Efficency = {ce:.3f}")
 
 
 
