@@ -1,8 +1,4 @@
 
-git init
-
-
-
 # Air density
 P = 1e5
 R = 287
@@ -12,6 +8,7 @@ rho = P / (R * T)   # Air density in kg / m3
 
 import numpy as np
 import matplotlib.pyplot as plt
+import efficiencyCalculations
 
 def cot(x):
     return 1 / np.tan(x)
@@ -87,7 +84,12 @@ V_inlet = 1.0  # m/s
 m_dot_inlet = rho * V_inlet * A_inlet
 print(f"Mass flow rate at inlet = {m_dot_inlet:.3f} kg/s")
 
-
+#post simmulation efficiency calculation
+#need to pass array of masses in each outlet here using dummy for now
+core = [5,10,1,5,8,10]
+scavenge = [6,4,7,10,1,5,7]
+ce = efficiencyCalculations.captureEfficiency(core, scavenge)
+print(f"Collection Efficency = {ce:.3f}")
 
 
 
