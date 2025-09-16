@@ -2,9 +2,36 @@
 import numpy as np
 import math
 
-def update_particle_position(startPos,Up):
-    #using new velocity caluclate new positon
-    new_pos = [0,0] #<-- this needs to be calculated
+#time step for when we calculate each particles position
+t_step = 0.01
+
+boundary_matrix = np.array([[0, 0]])
+def update_boundary_matrix(matrix):
+    boundary_matrix = matrix
+    print(boundary_matrix) #this print out is just for debugging
+
+def run_particle_simulation(startPos,startVelocity, startAirFlow):
+    #not sure what the return should be here yet
+    particle_position_matrix =([startPos])
+    pos = startPos
+    delta_time = 0
+    collision = False
+    while (pos[0] <= 10): #run through sim until the particle crosses x boundary
+        if (collision):
+            wall_relfection() #not sure what's needed here Carolina to fill in this function
+        Up = new_velocity(startVelocity,airflowVector=[0,3]) #<-- still need to properly calculate airflow vector
+        pos = update_particle_position(startPos,Up,delta_time)
+        particle_position_matrix = np.vstack([particle_position_matrix, pos])
+        collision = has_collided(pos)
+        delta_time+=t_step
+    return particle_position_matrix
+
+def update_particle_position(startPos,Up,delta_time):
+    #using new velocity calculate new position
+    #Up is total partical velocity at this time
+    #returns a 2-D array with the particles new [x,y]
+    #new_pos = startPos + (Up * delta_time) <-- todo: fix and seperate to x,y
+    new_pos = [12,0]
     return new_pos
 
 def new_velocity(startVector,airflowVector):
@@ -77,3 +104,13 @@ def schiller_naumann_drag(u, up, rho_f, mu_f, dp):
         Fx, Fy = 0.0, 0.0
 
     return Fx, Fy
+
+def has_collided(particlePos):
+    #checks if currect particle positon is in the boundry matrix
+    #returns true if it has collided false if not
+    matches = np.all(boundary_matrix == particlePos, axis=1)
+    return matches
+
+def wall_relfection():
+    #assumes it bounced to a point
+    return

@@ -9,6 +9,14 @@ rho = P / (R * T)   # Air density in kg / m3
 import numpy as np
 import matplotlib.pyplot as plt
 import efficiencyCalculations
+import trajectoryCalculations
+#this is just filled with dummy values for now
+#Marcelo please update this to have points along the boundary
+boundary_matrix = np.array([
+    [0,0],
+    [0,1]
+])
+
 
 def cot(x):
     return 1 / np.tan(x)
@@ -33,6 +41,11 @@ y3 = -5*(np.pi - t) / (2*np.pi)
 # Curve 4
 x4 = (5*(np.pi - t) * cot(t)) / (2*np.pi)
 y4 = 5*(np.pi - t) / (2*np.pi)
+
+#Particle Trajectory -------------------------------------------------------------
+trajectoryCalculations.update_boundary_matrix(boundary_matrix)
+#calling with dummy values for now
+test_matrix = trajectoryCalculations.run_particle_simulation(startPos=[0,0],startVelocity=[2,4],startAirFlow=[1,2])
 
 # Define integration range only for Inlet
 mask_inlet = (x1 >= -10) & (x1 <= -0.8)
