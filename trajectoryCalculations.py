@@ -47,6 +47,7 @@ def run_particle_simulation(startPos,startVelocity,pd):
     while (pos[0] <= 10): #run through sim until the particle crosses x boundary
         if (collision):
             wall_relfection(Up)
+            collision = False
         airflowVector=np.array(air_velocity(startPos[0],startPos[1]))
         dragVector = schiller_naumann_drag(Up,airflowVector,pd)
         Up = new_velocity(Up,dragVector)
