@@ -1,116 +1,141 @@
 
 import numpy as np
-import math
 
 #time step for when we calculate each particles position
 t_step = 0.01
 
+etan = 0.70
+enorm = 0.95
+
+#counters
+scavenge =np.array([])
+core = np.array([])
+lost = np.array([])
+
 boundary_matrix = np.array([[0, 0]])
+
+def air_velocity(x,y):
+    # Convert to polar coordinates
+    r = np.sqrt(x ** 2 + y ** 2)
+    theta = np.arctan2(y, x)
+
+    # Compute Vr and Vt
+    Vr = -np.sin(theta)
+    Vt = (1 / (2 * np.pi * r)) + np.cos(theta)
+
+    # Convert to Cartesian velocities
+    Vx = Vr * np.cos(theta) - Vt * np.sin(theta)
+    Vy = Vr * np.sin(theta) + Vt* np.cos(theta)
+
+    return (Vx, Vy)
+
+def get_outlet_lists():
+    return scavenge,core,lost
+
 def update_boundary_matrix(matrix):
     boundary_matrix = matrix
-    print(boundary_matrix) #this print out is just for debugging
+    return
 
-def run_particle_simulation(startPos,startVelocity, startAirFlow):
+def run_particle_simulation(startPos,startVelocity,pd):
     #not sure what the return should be here yet
+
     particle_position_matrix =([startPos])
     pos = startPos
     delta_time = 0
     collision = False
+    Up = startVelocity
     while (pos[0] <= 10): #run through sim until the particle crosses x boundary
         if (collision):
-            wall_relfection() #not sure what's needed here Carolina to fill in this function
-        Up = new_velocity(startVelocity,airflowVector=[0,3]) #<-- still need to properly calculate airflow vector
+            wall_relfection(Up)
+        airflowVector=np.array(air_velocity(startPos[0],startPos[1]))
+        dragVector = schiller_naumann_drag(Up,airflowVector,pd)
+        Up = new_velocity(Up,dragVector)
         pos = update_particle_position(startPos,Up,delta_time)
         particle_position_matrix = np.vstack([particle_position_matrix, pos])
         collision = has_collided(pos)
         delta_time+=t_step
-    return particle_position_matrix
+    #if last pos is in scavange add to counter
+    if (pos[0]>2.3):
+        np.append(scavenge,pd)
+        #if core add to counter
+    if (pos[0]<(-2.4)):
+        #in neither add to counter
+        np.append(core,pd)
+    else:
+        np.append(lost,pd)
+
+    return
 
 def update_particle_position(startPos,Up,delta_time):
     #using new velocity calculate new position
-    #Up is total partical velocity at this time
+    #Up is total particle velocity at this time
     #returns a 2-D array with the particles new [x,y]
-    #new_pos = startPos + (Up * delta_time) <-- todo: fix and seperate to x,y
-    new_pos = [12,0]
+    new_pos = startPos + (Up * delta_time)
     return new_pos
 
-def new_velocity(startVector,airflowVector):
+def new_velocity(particleVector,dragVector):
     #calulate force balance
-    #still need to find the equation for this
-    Up = 0  #<-- this needs to be calculated
+    Up = particleVector + dragVector * t_step
     return Up
 
-def air_velocity(theta,r):
+
+import numpy as np
+
+
+def schiller_naumann_drag(v, u, dp):
     """
-    Calculate air Velocity at any given point
-    Parameter: theta,r
-    Returns: Vr,Vtheta
+    Compute drag acceleration on a 2D particle using Schiller-Naumann correlation.
 
-    r: radial distance
-    theta: angle in radians
-    returns: (Vr, Vtheta)
+    Parameters:
+    v      : np.array([vx, vy]), particle velocity in microm/s
+    u      : np.array([ux, uy]), local fluid (air) velocity in m/s
+    dp     : float, particle diameter (m)
+
+    Returns:
+    a      : np.array([ax, ay]), particle acceleration in m/s^2
     """
-    Vr = -math.sin(theta)
-    Vtheta = 1 / (2 * math.pi * r) + math.cos(theta)
-    return Vr, Vtheta
 
+    #particle density (kg/m^3)
+    rho_p = 2650
+    #fluid density (kg/m^3)
+    rho_f = 1.225
+    #dynamic viscosity of fluid (Pa·s)
+    mu = .00001789
 
-def schiller_naumann_drag(u, up, rho_f, mu_f, dp):
-    """
-    Calculate drag force on a spherical particle using Schiller-Naumann model.
+    #convert micro m to m
+    dp = dp * 1e-6
 
-    Parameters
-    ----------
-    u : tuple (ux, uy)
-        Fluid velocity vector
-    up : tuple (upx, upy)
-        Particle velocity vector
-    rho_f : float
-        Fluid density [kg/m^3]
-    mu_f : float
-        Fluid dynamic viscosity [Pa·s]
-    dp : float
-        Particle diameter [m]
+    # relative velocity
+    v_rel = u - v
+    v_rel_mag = np.linalg.norm(v_rel)
 
-    Returns
-    -------
-    Fx, Fy : float
-        Drag force components [N]
-    """
-    # Relative velocity
-    ur = (u[0] - up[0], u[1] - up[1])
-    ur_mag = math.sqrt(ur[0] ** 2 + ur[1] ** 2)
+    # avoid division by zero
+    if v_rel_mag < 1e-12:
+        return np.zeros_like(v)
 
-    # Particle Reynolds number
-    Re_p = rho_f * ur_mag * dp / mu_f
+    # Reynolds number
+    Re_p = (rho_f * dp * v_rel_mag) / mu
 
-    # Schiller-Naumann drag coefficient
+    # Schiller–Naumann correction factor
     if Re_p < 1000:
-        Cd = 24 / Re_p * (1 + 0.15 * Re_p ** 0.687) if Re_p > 1e-8 else 0.0
+        f = 1.0 + 0.15 * (Re_p ** 0.687)
     else:
-        Cd = 0.44
+        # fallback: constant drag coefficient ~0.44 for turbulent regime
+        f = 0.44 * Re_p / 24.0
 
-    # Particle projected area (circle)
-    Ap = math.pi * (dp ** 2) / 4
+    # drag acceleration (per unit mass)
+    a = (18.0 * mu / (rho_p * dp ** 2)) * f * v_rel
+    return a
 
-    # Drag force magnitude
-    Fd_mag = 0.5 * Cd * rho_f * Ap * ur_mag ** 2
-
-    # Force vector (same direction as relative velocity)
-    if ur_mag > 1e-12:
-        Fx = Fd_mag * ur[0] / ur_mag
-        Fy = Fd_mag * ur[1] / ur_mag
-    else:
-        Fx, Fy = 0.0, 0.0
-
-    return Fx, Fy
 
 def has_collided(particlePos):
-    #checks if currect particle positon is in the boundry matrix
+    #checks if current particle position is in the boundary matrix
     #returns true if it has collided false if not
     matches = np.all(boundary_matrix == particlePos, axis=1)
     return matches
 
-def wall_relfection():
-    #assumes it bounced to a point
-    return
+def wall_relfection(particle_vector):
+    vxa = particle_vector[0] * etan
+    vya = particle_vector[1] * -enorm
+    particle_vector_after = np.array(vxa,vya)
+    return particle_vector_after
