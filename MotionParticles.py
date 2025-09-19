@@ -15,9 +15,9 @@ def air_velocity(x, y):
     Vy = Vr * np.sin(theta) + Vt * np.cos(theta)
     return Vx, Vy
 
-def generar_curva(C, signo=1, n_puntos=5000):
-    t = np.linspace(np.deg2rad(15.5568), np.deg2rad(176.891), n_puntos)
-    if signo == 1:
+def generate_curve(C, sign=1, n_points=5000):
+    t = np.linspace(np.deg2rad(15.5568), np.deg2rad(176.891), n_points)
+    if sign == 1:
         x = (5 * (C - t) * cot(t)) / (2*np.pi)
         y = 5 * (C - t) / (2*np.pi)
     else:
@@ -25,103 +25,101 @@ def generar_curva(C, signo=1, n_puntos=5000):
         y = -5 * (C - t) / (2*np.pi)
     return np.column_stack((x, y))
 
-# Curvas
+# Curves
 C1 = 3.7699111843077517
 C2 = 4.39822971502571
-curva1 = generar_curva(C1, signo=1)
-curva2 = generar_curva(C2, signo=-1)
-curva3 = generar_curva(np.pi, signo=-1)
-curva4 = generar_curva(np.pi, signo=1)
-paredes = [curva1, curva2, curva3, curva4]
+curve1 = generate_curve(C1, sign=1)
+curve2 = generate_curve(C2, sign=-1)
+curve3 = generate_curve(np.pi, sign=-1)
+curve4 = generate_curve(np.pi, sign=1)
+walls = [curve1, curve2, curve3, curve4]
 
-# Parámetros de la simulación
+# Simulation parameters
 dt = 0.1
 steps = 30000
 enormal = 0.95
-etangencial = 0.70
+etangential = 0.70
 
-# Posición inicial
+# Initial position
 x, y = -8.0, 0.0
-vx, vy = 1.0, 0.0  # velocidad inicial
+vx, vy = 1.0, 0.0  # initial velocity
 
-trayectoria_x = [x]
-trayectoria_y = [y]
+trajectory_x = [x]
+trajectory_y = [y]
 
 for _ in range(steps):
-    # Velocidad del aire en la posición actual
+    # Air velocity at the current position
     Vx_air, Vy_air = air_velocity(x, y)
 
-    # Aquí decides:
-    # O bien haces que la partícula siga exactamente al aire:
-    # vx, vy = Vx_air, Vy_air
-    #
-    # O bien haces una mezcla: la partícula se ajusta al aire poco a poco
-    # (más realista, si quieres simular inercia):
-    alpha = 0.1  # qué tan rápido se ajusta al aire
+    alpha = 0.1  # how fast the particle adjusts to the air
     vx += alpha * (Vx_air - vx)
     vy += alpha * (Vy_air - vy)
 
-    # Nueva posición
+    # New position
     x_new = x + vx * dt
     y_new = y + vy * dt
 
-    # Verificar colisiones con paredes
-    for curva in paredes:
-        distancias = np.sqrt((curva[:, 0] - x_new) ** 2 + (curva[:, 1] - y_new) ** 2)
-        idx_min = np.argmin(distancias)
-        if distancias[idx_min] < 0.1:  # umbral de choque
-            # Punto más cercano
-            px, py = curva[idx_min]
+    # Check collisions with walls
+    for curve in walls:
+        distances = np.sqrt((curve[:, 0] - x_new) ** 2 + (curve[:, 1] - y_new) ** 2)
+        idx_min = np.argmin(distances)
+        if distances[idx_min] < 0.1:  # collision threshold
+            # Closest point
+            px, py = curve[idx_min]
 
-            # Vector tangente aproximado (derivada local)
-            if 1 < idx_min < len(curva) - 2:
-                tx = curva[idx_min + 1, 0] - curva[idx_min - 1, 0]
-                ty = curva[idx_min + 1, 1] - curva[idx_min - 1, 1]
+            # Tangent vector approximation (local derivative)
+            if 1 < idx_min < len(curve) - 2:
+                tx = curve[idx_min + 1, 0] - curve[idx_min - 1, 0]
+                ty = curve[idx_min + 1, 1] - curve[idx_min - 1, 1]
             else:
                 tx, ty = 1, 0
-            tangente = np.array([tx, ty])
-            tangente = tangente / np.linalg.norm(tangente)
+            tangent = np.array([tx, ty])
+            tangent = tangent / np.linalg.norm(tangent)
 
-            # Normal = perpendicular a la tangente
-            normal = np.array([-tangente[1], tangente[0]])
+            # Normal = perpendicular to the tangent
+            normal = np.array([-tangent[1], tangent[0]])
 
-            # Descomponer velocidad
+            # Decompose velocity
             v = np.array([vx, vy])
-            v_t = np.dot(v, tangente) * tangente
+            v_t = np.dot(v, tangent) * tangent
             v_n = np.dot(v, normal) * normal
 
-            # Aplicar coeficientes
-            v_rebote = etangencial * v_t - enormal * v_n
-            vx, vy = v_rebote
+            # Apply coefficients
+            v_rebound = etangential * v_t - enormal * v_n
+            vx, vy = v_rebound
 
-            # Empujar ligeramente fuera de la pared
+            # Push slightly outside the wall
             x_new = x + vx * dt + normal[0] * 1e-4
             y_new = y + vy * dt + normal[1] * 1e-4
 
             break
 
-    # Guardar trayectoria
-    trayectoria_x.append(x_new)
-    trayectoria_y.append(y_new)
+    # Save trajectory
+    trajectory_x.append(x_new)
+    trajectory_y.append(y_new)
 
     x, y = x_new, y_new
 
 # ---------------------------
-# Graficar
+# Plot
 # ---------------------------
 plt.figure(figsize=(8,6))
-plt.plot(curva1[:,0], curva1[:,1], 'k')
-plt.plot(curva2[:,0], curva2[:,1], 'k')
-plt.plot(curva3[:,0], curva3[:,1], 'k')
-plt.plot(curva4[:,0], curva4[:,1], 'k')
-plt.scatter(trayectoria_x, trayectoria_y, c='r', s=10, label="Trayectoria")
+plt.plot(curve1[:,0], curve1[:,1], 'k')
+plt.plot(curve2[:,0], curve2[:,1], 'k')
+plt.plot(curve3[:,0], curve3[:,1], 'k')
+plt.plot(curve4[:,0], curve4[:,1], 'k')
+plt.scatter(trajectory_x, trajectory_y, c='r', s=10, label="Trajectory")
 
 plt.xlabel("X")
 plt.ylabel("Y")
-plt.title("Trayectoria de una partícula con rebotes")
+plt.title("Trajectory of a particle with rebounds")
 plt.legend()
-plt.axis("equal")
+plt.axis("scaled")
+plt.xlim(-10, 10)
+plt.ylim(-10, 10)
 plt.show()
+
+
 
 
 
