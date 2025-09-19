@@ -1,5 +1,8 @@
 # Air density
+import efficiencyCalculations
 import trajectoryCalculations
+import numpy as np
+
 
 P = 1e5
 R = 287
@@ -7,7 +10,8 @@ T = 25 + 273.15
 
 rho = P / (R * T)   # Air density in kg / m3
 
-import numpy as np
+
+
 import matplotlib.pyplot as plt
 
 def cot(x):
@@ -150,30 +154,38 @@ def generate_particles(num_particles=100):
 
 
 distBetween = L_inlet/5
-startPos = [x2_near,y2_near+distBetween]
+startPos = np.array([x2_near,y2_near+distBetween])
 max_offset = 0.6495 * 0.05
 releasedParticles = generate_particles()
+inCore = False
+#counters
+scavenge =np.array([])
+core = np.array([])
 
 #for all sand grains released at a point run sim
 for i in range(3):
     print(i)
     for j, pd in enumerate(releasedParticles):
-        print(pd)
-        print(startPos)
+        print("particle size", pd)
+        print("start Pos", startPos)
         # Random offset in range [-max_offset, +max_offset]
-        rand_offset = np.random.uniform(-max_offset, max_offset)
+        rand_offset = np.random.uniform(0, max_offset)
         # Particle velocity = airflow + random offset in x only
         startVelocity = np.array([1.000,0.000]) + np.array([rand_offset, 0.0])
         #run sim
-        trajectoryCalculations.run_particle_simulation(startPos,startVelocity,pd)
+        inCore = trajectoryCalculations.run_particle_simulation(startPos,startVelocity,pd)
+        if inCore:
+            core = np.append(core,pd)
+        else:
+            scavenge = np.append(scavenge,pd)
     #go up to next start position in y direction
-    startPos = startPos[1] + distBetween
+    startPos = np.array([startPos[0], (startPos[1] + distBetween)])
 
-scavenge,core,lost = trajectoryCalculations.get_outlet_lists()
 print(f"\nMasses in Scavenge", scavenge)
 print(f"\nMasses in Core", core)
-print(f"\nMasses Lost", lost)
 
+ce = efficiencyCalculations.captureEfficiency(core, scavenge)
+print("capture effeciency:",ce)
 
 
 

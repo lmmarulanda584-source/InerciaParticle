@@ -1,5 +1,6 @@
 
 import numpy as np
+import MotionParticles
 
 #time step for when we calculate each particles position
 t_step = 0.01
@@ -7,10 +8,7 @@ t_step = 0.01
 etan = 0.70
 enorm = 0.95
 
-#counters
-scavenge =np.array([])
-core = np.array([])
-lost = np.array([])
+
 
 boundary_matrix = np.array([[0, 0]])
 
@@ -27,11 +25,9 @@ def air_velocity(x,y):
     Vx = Vr * np.cos(theta) - Vt * np.sin(theta)
     Vy = Vr * np.sin(theta) + Vt* np.cos(theta)
 
+
     return (abs(Vx), abs(Vy))
 
-
-def get_outlet_lists():
-    return scavenge,core,lost
 
 def update_boundary_matrix(matrix):
     boundary_matrix = matrix
@@ -41,45 +37,42 @@ def run_particle_simulation(startPos,startVelocity,pd):
     #not sure what the return should be here yet
 
     particle_position_matrix =([startPos])
-    pos = startPos
+    pos = np.array(startPos)
     delta_time = 0
     collision = False
     Up = startVelocity
-    while (pos[0] <= 10): #run through sim until the particle crosses x boundary
+    counter = 0
+    while (pos[0] <= (-0.3)): #run through sim until the particle crosses x boundary
         if (collision):
             wall_relfection(Up)
             collision = False
-        airflowVector=np.array(air_velocity(pos[0],pos[1]))
-        print("afvector", airflowVector)
+        airflowVector=np.array(MotionParticles.air_velocity(pos[0],pos[1]))
+        #print("afvector", airflowVector)
         #dragVector = np.array([0.0, 0.0])
         dragVector = schiller_naumann_drag(Up,airflowVector,pd)
-        print("dragVector", dragVector)
+        #print("dragVector", dragVector)
         Up = new_velocity(Up,dragVector)
-        print("sum of V",Up)
-        pos = update_particle_position(pos, Up, t_step)
-        print("new pos", pos)
+        #print("sum of V",Up)
+        pos = np.array(update_particle_position(pos, Up, t_step))
+        #print("new pos", pos)
         particle_position_matrix = np.vstack([particle_position_matrix, pos])
         collision = has_collided(pos)
-        print("collision", collision)
+        #print("collision", collision)
         delta_time+=t_step
     #if last pos is in scavange add to counter
-    if (pos[0]>2.3):
-        np.append(scavenge,pd)
-        #if core add to counter
-    if (pos[0]<(-2.4)):
-        #in neither add to counter
-        np.append(core,pd)
+    if (pos[1]<0):
+        print("in core")
+        return True
     else:
-        np.append(lost,pd)
-
-    return
+        print("in scavenge")
+        return False
 
 def update_particle_position(startPos,Up,delta_time):
     #using new velocity calculate new position
     #Up is total particle velocity at this time
     #returns a 2-D array with the particles new [x,y]
     new_pos = startPos + (Up * delta_time)
-    return new_pos
+    return np.array(new_pos)
 
 def new_velocity(particleVector,dragVector):
     #calulate force balance
@@ -91,24 +84,19 @@ import numpy as np
 
 
 def schiller_naumann_drag(v, u, dp):
-    """
-    Compute drag acceleration on a 2D particle using Schiller-Naumann correlation.
-
-    Parameters:
-    v      : np.array([vx, vy]), particle velocity in microm/s
-    u      : np.array([ux, uy]), local fluid (air) velocity in m/s
-    dp     : float, particle diameter (m)
-
-    Returns:
-    a      : np.array([ax, ay]), particle acceleration in m/s^2
-    """
+    #Compute drag acceleration on a 2D particle using Schiller-Naumann correlation.
+    #Parameters:
+    #v : particle velocity in microm/s
+    #u  : local fluid (air) velocity in m/s
+    #dp : particle diameter (m)
+    #Returns: particle acceleration in m/s^2 : np.array([ax, ay])
 
     #particle density (kg/m^3)
     rho_p = 2650
     #fluid density (kg/m^3)
-    rho_f = 1.225
+    rho_f = 1.184
     #dynamic viscosity of fluid (Pa·s)
-    mu = .00001789
+    mu = 0.00001849
 
     #convert micro m to m
     dp = dp * 1e-6
@@ -143,6 +131,8 @@ def has_collided(particlePos):
     return matches
 
 def wall_relfection(particle_vector):
+    #switches the y when colliding with wall and takes into account given CR
+    #recturns a vector [x,y]
     vxa = particle_vector[0] * etan
     vya = particle_vector[1] * -enorm
     particle_vector_after = np.array(vxa,vya)
