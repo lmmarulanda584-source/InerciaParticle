@@ -163,11 +163,10 @@ scavenge =np.array([])
 core = np.array([])
 
 #for all sand grains released at a point run sim
-for i in range(3):
+for i in range(4):
     print(i)
+    print("start Pos", startPos)
     for j, pd in enumerate(releasedParticles):
-        print("particle size", pd)
-        print("start Pos", startPos)
         # Random offset in range [-max_offset, +max_offset]
         rand_offset = np.random.uniform(0, max_offset)
         # Particle velocity = airflow + random offset in x only

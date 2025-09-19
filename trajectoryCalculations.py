@@ -44,27 +44,27 @@ def run_particle_simulation(startPos,startVelocity,pd):
     counter = 0
     while (pos[0] <= (-0.3)): #run through sim until the particle crosses x boundary
         if (collision):
-            wall_relfection(Up)
+            Up = wall_relfection(Up)
+            #print("collision vector", Up)
+            #print("afvector", airflowVector)
+            #print("dragVector", dragVector)
             collision = False
         airflowVector=np.array(MotionParticles.air_velocity(pos[0],pos[1]))
-        #print("afvector", airflowVector)
-        #dragVector = np.array([0.0, 0.0])
+
         dragVector = schiller_naumann_drag(Up,airflowVector,pd)
-        #print("dragVector", dragVector)
+
         Up = new_velocity(Up,dragVector)
         #print("sum of V",Up)
         pos = np.array(update_particle_position(pos, Up, t_step))
         #print("new pos", pos)
         particle_position_matrix = np.vstack([particle_position_matrix, pos])
-        collision = has_collided(pos)
+        collision = collision_check(pos,pd)
         #print("collision", collision)
         delta_time+=t_step
     #if last pos is in scavange add to counter
     if (pos[1]<0):
-        print("in core")
         return True
     else:
-        print("in scavenge")
         return False
 
 def update_particle_position(startPos,Up,delta_time):
@@ -124,16 +124,28 @@ def schiller_naumann_drag(v, u, dp):
     return a
 
 
-def has_collided(particlePos):
+def has_collided(particlePos, pd):
     #checks if current particle position is in the boundary matrix
+    #adds tolerance based on particle diameter (pd)
     #returns true if it has collided false if not
-    matches = np.all(boundary_matrix == particlePos, axis=1)
+    #matches = np.all(boundary_matrix == particlePos, axis=1)
+    matches = np.all(np.abs(boundary_matrix - particlePos) <= (pd*0.5), axis=1)
     return matches
+
+def collision_check(particlePos, pd):
+    dists = np.linalg.norm(boundary_matrix - particlePos, axis=1)
+    nearest_idx = np.argmin(dists)
+    min_dist = dists[nearest_idx]
+
+    if min_dist <= pd / 2:
+        return True
+    else:
+        return False
 
 def wall_relfection(particle_vector):
     #switches the y when colliding with wall and takes into account given CR
     #recturns a vector [x,y]
-    vxa = particle_vector[0] * etan
-    vya = particle_vector[1] * -enorm
+    vxa = particle_vector[0] * enorm
+    vya = particle_vector[1] * -etan
     particle_vector_after = np.array(vxa,vya)
     return particle_vector_after
