@@ -12,23 +12,6 @@ enorm = 0.95
 
 boundary_matrix = np.array([[0, 0]])
 
-def air_velocity(x,y):
-    # Convert to polar coordinates
-    r = np.sqrt(x ** 2 + y ** 2)
-    theta = np.arctan2(y, x)
-
-    # Compute Vr and Vt
-    Vr = -np.sin(theta)
-    Vt = (1 / (2 * np.pi * r)) + np.cos(theta)
-
-    # Convert to Cartesian velocities
-    Vx = Vr * np.cos(theta) - Vt * np.sin(theta)
-    Vy = Vr * np.sin(theta) + Vt* np.cos(theta)
-
-
-    return (abs(Vx), abs(Vy))
-
-
 def update_boundary_matrix(matrix):
     boundary_matrix = matrix
     return
@@ -83,44 +66,36 @@ def new_velocity(particleVector,dragVector):
 import numpy as np
 
 
-def schiller_naumann_drag(v, u, dp):
-    #Compute drag acceleration on a 2D particle using Schiller-Naumann correlation.
+# Compute drag acceleration on a 2D particle using Schiller-Naumann correlation.
+def schiller_naumann_drag(v, u, dp_um):
     #Parameters:
-    #v : particle velocity in microm/s
+    #v : particle velocity in m/s
     #u  : local fluid (air) velocity in m/s
-    #dp : particle diameter (m)
+    #dp_um : particle diameter (micro m)
     #Returns: particle acceleration in m/s^2 : np.array([ax, ay])
-
-    #particle density (kg/m^3)
-    rho_p = 2650
-    #fluid density (kg/m^3)
-    rho_f = 1.184
-    #dynamic viscosity of fluid (Pa·s)
-    mu = 0.00001849
-
+    rho_p = 2650.0 #particle density (kg/m^3)
+    rho_f = 1.184 #fluid density (kg/m^3)
+    mu = 0.00001849  #dynamic viscosity of fluid (Pa·s)
     #convert micro m to m
-    dp = dp * 1e-6
-
+    dp = dp_um * 1e-6
     # relative velocity
     v_rel = u - v
     v_rel_mag = np.linalg.norm(v_rel)
-
+    #print ("relative velocity", v_rel_mag)
     # avoid division by zero
     if v_rel_mag < 1e-12:
         return np.zeros_like(v)
-
     # Reynolds number
     Re_p = (rho_f * dp * v_rel_mag) / mu
-
-    # Schiller–Naumann correction factor
+    #print ("reynolds num:", Re_p)
+    # Schiller–Naumann drag coefficient
     if Re_p < 1000:
-        f = 1.0 + 0.15 * (Re_p ** 0.687)
+        Cd = 24.0 / Re_p * (1 + 0.15 * (Re_p ** 0.687))
     else:
-        # fallback: constant drag coefficient ~0.44 for turbulent regime
-        f = 0.44 * Re_p / 24.0
+        Cd = 0.44
 
-    # drag acceleration (per unit mass)
-    a = (18.0 * mu / (rho_p * dp ** 2)) * f * v_rel
+    # Drag acceleration (per unit mass of particle)
+    a = 0.75 * (rho_f / (rho_p * dp)) * Cd * v_rel_mag * v_rel
     return a
 
 
@@ -147,5 +122,5 @@ def wall_relfection(particle_vector):
     #recturns a vector [x,y]
     vxa = particle_vector[0] * enorm
     vya = particle_vector[1] * -etan
-    particle_vector_after = np.array(vxa,vya)
+    particle_vector_after = np.array([vxa,vya])
     return particle_vector_after

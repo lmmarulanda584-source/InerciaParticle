@@ -5,6 +5,10 @@ def cot(x):
     return 1 / np.tan(x)
 
 def air_velocity(x, y):
+    # inlet at x = x_inlet
+    if x <= -10:  # or within a small distance from inlet
+        return 1.0, 0.0  # 1 m/s horizontal, no vertical component
+
     r = np.sqrt(x**2 + y**2)
     theta = np.arctan2(y, x)
 
