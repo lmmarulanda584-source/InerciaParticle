@@ -27,7 +27,8 @@ def air_velocity(x,y):
     Vx = Vr * np.cos(theta) - Vt * np.sin(theta)
     Vy = Vr * np.sin(theta) + Vt* np.cos(theta)
 
-    return (Vx, Vy)
+    return (abs(Vx), abs(Vy))
+
 
 def get_outlet_lists():
     return scavenge,core,lost
@@ -48,12 +49,18 @@ def run_particle_simulation(startPos,startVelocity,pd):
         if (collision):
             wall_relfection(Up)
             collision = False
-        airflowVector=np.array(air_velocity(startPos[0],startPos[1]))
+        airflowVector=np.array(air_velocity(pos[0],pos[1]))
+        print("afvector", airflowVector)
+        #dragVector = np.array([0.0, 0.0])
         dragVector = schiller_naumann_drag(Up,airflowVector,pd)
+        print("dragVector", dragVector)
         Up = new_velocity(Up,dragVector)
-        pos = update_particle_position(startPos,Up,delta_time)
+        print("sum of V",Up)
+        pos = update_particle_position(pos, Up, t_step)
+        print("new pos", pos)
         particle_position_matrix = np.vstack([particle_position_matrix, pos])
         collision = has_collided(pos)
+        print("collision", collision)
         delta_time+=t_step
     #if last pos is in scavange add to counter
     if (pos[0]>2.3):

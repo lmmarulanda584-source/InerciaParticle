@@ -159,6 +159,7 @@ for i in range(3):
     print(i)
     for j, pd in enumerate(releasedParticles):
         print(pd)
+        print(startPos)
         # Random offset in range [-max_offset, +max_offset]
         rand_offset = np.random.uniform(-max_offset, max_offset)
         # Particle velocity = airflow + random offset in x only
