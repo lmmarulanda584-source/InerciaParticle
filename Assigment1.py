@@ -168,7 +168,7 @@ for i in range(4):
     print("start Pos", startPos)
     for j, pd in enumerate(releasedParticles):
         # Random offset in range [-max_offset, +max_offset]
-        rand_offset = np.random.uniform(0, max_offset)
+        rand_offset = np.random.uniform(-max_offset, max_offset)
         # Particle velocity = airflow + random offset in x only
         startVelocity = np.array([1.000,0.000]) + np.array([rand_offset, 0.0])
         #run sim

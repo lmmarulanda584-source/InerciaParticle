@@ -1,6 +1,13 @@
+import csv
 
 import numpy as np
 import MotionParticles
+
+#CSV to track magnitude of all vectors
+with open("vector_magnitudes.csv", mode="w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["collision_mag", "airflow_mag", "drag_mag"])
+
 
 #time step for when we calculate each particles position
 t_step = 0.01
@@ -11,6 +18,17 @@ enorm = 0.95
 
 
 boundary_matrix = np.array([[0, 0]])
+
+#to use for tracking magnitudes
+def log_vectors(collision, airflow, drag):
+    collision_mag = np.linalg.norm(collision)
+    airflow_mag = np.linalg.norm(airflow)
+    drag_mag = np.linalg.norm(drag)
+
+    # Append to CSV
+    with open("vector_magnitudes.csv", mode="a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow([collision_mag, airflow_mag, drag_mag])
 
 def update_boundary_matrix(matrix):
     boundary_matrix = matrix
@@ -28,15 +46,16 @@ def run_particle_simulation(startPos,startVelocity,pd):
     while (pos[0] <= (-0.3)): #run through sim until the particle crosses x boundary
         if (collision):
             Up = wall_relfection(Up)
+            log_vectors(Up,airflowVector,drag)
             #print("collision vector", Up)
             #print("afvector", airflowVector)
-            #print("dragVector", dragVector)
+            #print("drag", drag)
             collision = False
         airflowVector=np.array(MotionParticles.air_velocity(pos[0],pos[1]))
 
-        dragVector = schiller_naumann_drag(Up,airflowVector,pd)
+        drag = schiller_naumann_drag(Up,airflowVector,pd)
 
-        Up = new_velocity(Up,dragVector)
+        Up = new_velocity(Up,drag)
         #print("sum of V",Up)
         pos = np.array(update_particle_position(pos, Up, t_step))
         #print("new pos", pos)
@@ -57,9 +76,9 @@ def update_particle_position(startPos,Up,delta_time):
     new_pos = startPos + (Up * delta_time)
     return np.array(new_pos)
 
-def new_velocity(particleVector,dragVector):
+def new_velocity(particleVector,drag):
     #calulate force balance
-    Up = particleVector + dragVector * t_step
+    Up = particleVector + drag * t_step
     return Up
 
 
@@ -120,7 +139,7 @@ def collision_check(particlePos, pd):
 def wall_relfection(particle_vector):
     #switches the y when colliding with wall and takes into account given CR
     #recturns a vector [x,y]
-    vxa = particle_vector[0] * enorm
-    vya = particle_vector[1] * -etan
+    vxa = particle_vector[0]
+    vya = -particle_vector[1]
     particle_vector_after = np.array([vxa,vya])
     return particle_vector_after
