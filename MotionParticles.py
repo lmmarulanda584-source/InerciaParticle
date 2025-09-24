@@ -9,6 +9,8 @@ def air_velocity(x, y):
     if x <= -10:  # or within a small distance from inlet
         return 1.0, 0.0  # 1 m/s horizontal, no vertical component
 
+    if x>= -0.3:
+        return 1.112, 0.0  # 1.112 m/s horizontal, no vertical component
     r = np.sqrt(x**2 + y**2)
     theta = np.arctan2(y, x)
 
